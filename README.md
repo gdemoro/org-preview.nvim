@@ -18,8 +18,8 @@ but **pure Lua** and using **Pandoc** for the Org → HTML conversion.
 ## Requirements
 
 - Neovim **0.10+** (uses `vim.system`, `vim.ui.open`, `vim.fs`).
-- [Pandoc](https://pandoc.org/installing.html) available in `$PATH`
-  (`pandoc >= 2.11` recommended; developed against 3.x).
+- [Pandoc](https://pandoc.org/installing.html) available in `$PATH`.
+  Pandoc 3.x recommended. Older versions are not currently tested.
 
 Check that Neovim can see pandoc:
 
@@ -148,7 +148,7 @@ the reader before the AST.
 
 ### Styling
 
-A clean, GitHub-flavoured default stylesheet (`assets/default.css`) is
+A clean, compact default stylesheet (`assets/default.css`) is
 injected automatically. It is self-contained and works offline, provides a
 centered reading column (`max-width: 80ch`), a system sans-serif stack, a
 compact line height, a readable heading hierarchy, styled
@@ -288,7 +288,7 @@ everything is torn down on `VimLeavePre`.
 
 ## Tests
 
-The suite is dependency-free and uses a small home-grown runner:
+The suite uses a small home-grown runner (no test framework required):
 
 ```sh
 make test
@@ -296,9 +296,9 @@ make test
 nvim --headless -u tests/minimal_init.lua -l tests/run.lua
 ```
 
-Renderer tests require pandoc; they are skipped when it is missing. Server
-and integration tests use `curl`, which they will skip only implicitly by
-failing if unavailable — `curl` is usually present.
+The full suite requires Pandoc and `curl` on `$PATH`; `curl` is a test-only
+dependency. Without Pandoc, the renderer tests are bypassed but integration
+tests fail. Without `curl`, tests that use it fail rather than skip.
 
 The suite includes regression tests for:
 
