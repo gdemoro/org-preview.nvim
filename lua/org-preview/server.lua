@@ -205,7 +205,6 @@ function Server:add_preview(id, spec)
     source_dir = spec.source_dir,
     get_html = spec.get_html,
     clients = {},
-    version = 0,
   }
 end
 
@@ -243,8 +242,7 @@ function Server:update(id)
     return
   end
 
-  preview.version = preview.version + 1
-  local message = "event: reload\ndata: " .. preview.version .. "\n\n"
+  local message = "event: reload\ndata: reload\n\n"
 
   local alive = {}
   for _, client in ipairs(preview.clients) do

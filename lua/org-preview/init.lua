@@ -28,7 +28,6 @@ M.config = {
 local state = {
   server = nil,
   configured = false,
-  cache_cleaned = false,
 }
 
 --- Resolve `config.css` into literal CSS text.
@@ -142,10 +141,6 @@ function M.start(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
   if not state.configured then
     M.setup({})
-  end
-  if not state.cache_cleaned then
-    state.cache_cleaned = true
-    pcall(preview.cleanup_stale_cache, 24 * 60 * 60)
   end
   M._ensure_server(function(srv)
     preview.start(bufnr, M.config, srv)

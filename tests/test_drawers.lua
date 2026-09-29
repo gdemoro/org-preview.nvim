@@ -1,37 +1,12 @@
 local op = require("org-preview")
 
---- @param bufnr integer
---- @return table|nil
-local function preview_for(bufnr)
-  for _, p in ipairs(op.info().previews) do
-    if p.bufnr == bufnr then
-      return p
-    end
-  end
-  return nil
-end
-
---- Strip <style>/<script> blocks so assertions only see markup.
---- @param html string
---- @return string
-local function body_only(html)
-  html = html:gsub("<style>.-</style>", "")
-  html = html:gsub("<script>.-</script>", "")
-  return html
-end
-
 --- Render `content` through the live pipeline and return the served body.
 --- @param content string
 --- @param opts table|nil
 --- @return string
 local function render(content, opts)
   local dir = H.temp_dir("drawer")
-  local file = vim.fs.joinpath(dir, "notes.org")
-  local fd = io.open(file, "w")
-  fd:write(content)
-  fd:close()
-  vim.cmd("edit! " .. vim.fn.fnameescape(file))
-  local bufnr = vim.api.nvim_get_current_buf()
+  local bufnr = H.open_org(dir, "notes.org", content)
 
   -- Reset module state so tests are order-independent.
   op.config.css = nil
@@ -43,7 +18,7 @@ local function render(content, opts)
   }, opts or {}))
   op.start(bufnr)
 
-  local p = preview_for(bufnr)
+  local p = H.preview_for(bufnr)
   assert(p, "expected a preview")
   local html
   assert(H.wait_for(function()
@@ -54,7 +29,7 @@ local function render(content, opts)
 
   op.stop(bufnr)
   H.rm_rf(dir)
-  return body_only(html)
+  return H.body_only(html)
 end
 
 test("drawers: arbitrary drawer becomes a details/summary block", function()

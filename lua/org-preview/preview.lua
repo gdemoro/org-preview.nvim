@@ -126,28 +126,6 @@ local function inject_html(html, css, events_path)
   return html
 end
 
---- @param id string
---- @return string
-local function cache_dir(id)
-  return vim.fs.joinpath(vim.fn.stdpath("cache"), "org-preview", id)
-end
-
---- Persist the rendered document under stdpath("cache")/org-preview/.
---- @param p table
-local function write_cache(p)
-  local ok = pcall(function()
-    vim.fn.mkdir(p.cache_dir, "p")
-    local fd = io.open(vim.fs.joinpath(p.cache_dir, "index.html"), "w")
-    if fd then
-      fd:write(p.html)
-      fd:close()
-    end
-  end)
-  if not ok then
-    vim.notify("org-preview: could not write cache file", vim.log.levels.WARN)
-  end
-end
-
 --- @param p table
 local function cancel_timer(p)
   if p.timer then
@@ -197,7 +175,6 @@ local function render_now(p, on_done)
       p.html = inject_html(transform_priorities(html), p.config.css_text, p.events_path)
     end
 
-    write_cache(p)
     p.server:update(p.id)
     if on_done then
       on_done()
@@ -359,7 +336,6 @@ function M.start(bufnr, config, server)
     config = config,
     server = server,
     source_dir = source_dir,
-    cache_dir = cache_dir(id),
     url = url,
     events_path = "__events",
     generation = 0,
@@ -404,8 +380,8 @@ function M.stop(bufnr)
   previews[bufnr] = nil
 
   -- Invalidate any in-flight render. Killing the job is best-effort; a
-  -- callback that already fired or is queued must not touch p.html, the
-  -- cache directory or the server after the preview is gone.
+  -- callback that already fired or is queued must not touch p.html or the
+  -- server after the preview is gone.
   p.generation = p.generation + 1
 
   cancel_timer(p)
@@ -430,12 +406,6 @@ function M.stop(bufnr)
     p.server:remove_preview(p.id)
   end)
 
-  if p.cache_dir then
-    pcall(function()
-      vim.fn.delete(p.cache_dir, "rf")
-    end)
-  end
-
   vim.notify("org-preview: stopped", vim.log.levels.INFO)
   return true
 end
@@ -445,41 +415,6 @@ function M.stop_all()
   local bufnrs = vim.tbl_keys(previews)
   for _, bufnr in ipairs(bufnrs) do
     M.stop(bufnr)
-  end
-end
-
---- Remove cache directories left behind by crashed sessions.
----
---- Conservative by design: only directories under
---- `stdpath("cache")/org-preview/` whose name matches our own
---- `<bufnr>-<counter>` id format and that have not been touched for
---- `max_age_seconds` are removed. Active sessions serve HTML from memory, so
---- even an over-eager cleanup cannot break a running preview.
----
---- @param max_age_seconds integer|nil Defaults to 24 hours.
-function M.cleanup_stale_cache(max_age_seconds)
-  local max_age = max_age_seconds or 24 * 60 * 60
-  local root = vim.fs.joinpath(vim.fn.stdpath("cache"), "org-preview")
-  local handle = uv.fs_scandir(root)
-  if not handle then
-    return
-  end
-
-  local now = os.time()
-  while true do
-    local name, kind = uv.fs_scandir_next(handle)
-    if not name then
-      break
-    end
-    if kind == "directory" and name:match("^%d+%-%d+$") then
-      local path = vim.fs.joinpath(root, name)
-      local stat = uv.fs_stat(path)
-      if stat and stat.mtime and (now - stat.mtime.sec) > max_age then
-        pcall(function()
-          vim.fn.delete(path, "rf")
-        end)
-      end
-    end
   end
 end
 

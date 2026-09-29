@@ -1,34 +1,10 @@
 local op = require("org-preview")
 
---- @param bufnr integer
---- @return table|nil
-local function preview_for(bufnr)
-  for _, p in ipairs(op.info().previews) do
-    if p.bufnr == bufnr then
-      return p
-    end
-  end
-  return nil
-end
-
---- @param dir string
---- @param filename string
---- @param content string
---- @return integer bufnr
-local function open_org(dir, filename, content)
-  local file = vim.fs.joinpath(dir, filename)
-  local fd = io.open(file, "w")
-  fd:write(content)
-  fd:close()
-  vim.cmd("edit! " .. vim.fn.fnameescape(file))
-  return vim.api.nvim_get_current_buf()
-end
-
 --- Fetch the served HTML for a buffer.
 --- @param bufnr integer
 --- @return string
 local function serve(bufnr)
-  local p = preview_for(bufnr)
+  local p = H.preview_for(bufnr)
   assert(p, "expected an active preview")
   return H.curl(p.url).stdout
 end
@@ -48,7 +24,7 @@ end
 
 test("styles: built-in stylesheet is injected by default", function()
   local dir = H.temp_dir("styles-default")
-  local bufnr = open_org(dir, "notes.org", "* Heading\n\nBody text.\n")
+  local bufnr = H.open_org(dir, "notes.org", "* Heading\n\nBody text.\n")
 
   op.config.css = nil
   op.setup({ open_browser = false, auto_open = false, debounce = 10 })
@@ -67,7 +43,7 @@ end)
 
 test("styles: outline headings are compact and the title stays dominant", function()
   local dir = H.temp_dir("styles-hierarchy")
-  local bufnr = open_org(dir, "notes.org", "#+TITLE: Doc\n\n* TODO Example task\n** Sub\n*** Deeper\n")
+  local bufnr = H.open_org(dir, "notes.org", "#+TITLE: Doc\n\n* TODO Example task\n** Sub\n*** Deeper\n")
 
   op.config.css = nil
   op.setup({ open_browser = false, auto_open = false, debounce = 10 })
@@ -100,7 +76,7 @@ end)
 
 test("styles: dark-mode block is present", function()
   local dir = H.temp_dir("styles-dark")
-  local bufnr = open_org(dir, "notes.org", "* Heading\n")
+  local bufnr = H.open_org(dir, "notes.org", "* Heading\n")
 
   op.config.css = nil
   op.setup({ open_browser = false, auto_open = false, debounce = 10 })
@@ -117,7 +93,7 @@ end)
 
 test("styles: custom css replaces the built-in stylesheet", function()
   local dir = H.temp_dir("styles-custom")
-  local bufnr = open_org(dir, "notes.org", "* Heading\n")
+  local bufnr = H.open_org(dir, "notes.org", "* Heading\n")
 
   op.setup({
     css = "CUSTOM_STYLE_MARKER { color: rgb(1, 2, 3); }",
@@ -144,7 +120,7 @@ test("styles: custom css can be loaded from a file", function()
   fd:write("FILE_STYLE_MARKER { color: rgb(4, 5, 6); }")
   fd:close()
 
-  local bufnr = open_org(dir, "notes.org", "* Heading\n")
+  local bufnr = H.open_org(dir, "notes.org", "* Heading\n")
   op.setup({ css = css_file, open_browser = false, auto_open = false, debounce = 10 })
   op.start(bufnr)
 
@@ -159,7 +135,7 @@ end)
 
 test("styles: css = false disables all injected styling", function()
   local dir = H.temp_dir("styles-off")
-  local bufnr = open_org(dir, "notes.org", "* Heading\n")
+  local bufnr = H.open_org(dir, "notes.org", "* Heading\n")
 
   op.setup({ css = false, open_browser = false, auto_open = false, debounce = 10 })
   op.start(bufnr)
@@ -177,7 +153,7 @@ end)
 
 test("styles: filename is not used as the document title", function()
   local dir = H.temp_dir("title-none")
-  local bufnr = open_org(dir, "toxicology.org", "* Section\n\nBody text.\n")
+  local bufnr = H.open_org(dir, "toxicology.org", "* Section\n\nBody text.\n")
 
   op.config.css = nil
   op.setup({ open_browser = false, auto_open = false, debounce = 10 })
@@ -196,7 +172,7 @@ end)
 
 test("styles: an explicit #+TITLE is rendered", function()
   local dir = H.temp_dir("title-explicit")
-  local bufnr = open_org(dir, "notes.org", "#+TITLE: Real Title\n\n* Section\n")
+  local bufnr = H.open_org(dir, "notes.org", "#+TITLE: Real Title\n\n* Section\n")
 
   op.config.css = nil
   op.setup({ open_browser = false, auto_open = false, debounce = 10 })
@@ -214,7 +190,7 @@ end)
 
 test("styles: Org tags are quiet pills with smallcaps neutralised", function()
   local dir = H.temp_dir("styles-tags")
-  local bufnr = open_org(dir, "notes.org", "* Heading :toxicology:review:\n")
+  local bufnr = H.open_org(dir, "notes.org", "* Heading :toxicology:review:\n")
 
   op.config.css = nil
   op.setup({ open_browser = false, auto_open = false, debounce = 10 })

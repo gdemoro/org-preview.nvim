@@ -6,13 +6,7 @@
 --- and invokes `callback(err, html)` when pandoc exits.
 local M = {}
 
---- Check whether pandoc can be found in `$PATH`.
---- @return boolean
-function M.is_available()
-  return vim.fn.executable("pandoc") == 1
-end
-
---- Absolute path to the pandoc executable (or nil when unavailable).
+--- Absolute path to the pandoc executable.
 --- @return string|nil
 function M.pandoc_path()
   local path = vim.fn.exepath("pandoc")
@@ -20,6 +14,12 @@ function M.pandoc_path()
     return nil
   end
   return path
+end
+
+--- Check whether pandoc can be found in `$PATH`.
+--- @return boolean
+function M.is_available()
+  return M.pandoc_path() ~= nil
 end
 
 --- Build the pandoc argument list.

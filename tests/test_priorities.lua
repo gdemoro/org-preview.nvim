@@ -1,42 +1,19 @@
 local op = require("org-preview")
 
---- @param bufnr integer
---- @return table|nil
-local function preview_for(bufnr)
-  for _, p in ipairs(op.info().previews) do
-    if p.bufnr == bufnr then
-      return p
-    end
-  end
-  return nil
-end
-
---- Strip <style>/<script> blocks so assertions only see markup.
---- @param html string
---- @return string
-local function body_only(html)
-  html = html:gsub("<style>.-</style>", "")
-  html = html:gsub("<script>.-</script>", "")
-  return html
-end
+local BADGE = '<span class="org-priority'
 
 --- Render `content` through the live pipeline and return the served HTML.
 --- @param content string
 --- @return string
 local function render(content)
   local dir = H.temp_dir("priority")
-  local file = vim.fs.joinpath(dir, "notes.org")
-  local fd = io.open(file, "w")
-  fd:write(content)
-  fd:close()
-  vim.cmd("edit! " .. vim.fn.fnameescape(file))
-  local bufnr = vim.api.nvim_get_current_buf()
+  local bufnr = H.open_org(dir, "notes.org", content)
 
   op.config.css = nil
   op.setup({ open_browser = false, auto_open = false, debounce = 10 })
   op.start(bufnr)
 
-  local p = preview_for(bufnr)
+  local p = H.preview_for(bufnr)
   assert(p, "expected a preview")
   local html
   assert(H.wait_for(function()
@@ -47,10 +24,8 @@ local function render(content)
 
   op.stop(bufnr)
   H.rm_rf(dir)
-  return body_only(html)
+  return H.body_only(html)
 end
-
-local BADGE = '<span class="org-priority'
 
 test("priorities: TODO [#A] heading becomes an A badge", function()
   local html = render("* TODO [#A] Example task\n")

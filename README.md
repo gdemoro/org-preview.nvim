@@ -231,8 +231,8 @@ preview always shows the underlying text.
    `InsertLeave`/`BufWritePost`/`BufFilePost`, and debounces re-renders.
 3. `renderer.lua` pipes the **current buffer text** to `pandoc` (run with the
    Org file's directory as the working directory) and returns HTML.
-4. The HTML is cached under `stdpath("cache")/org-preview/<id>/index.html`
-   and served from `http://127.0.0.1:<port>/preview/<id>/`.
+4. The rendered HTML is held in memory and served from
+   `http://127.0.0.1:<port>/preview/<id>/`.
 5. A tiny injected script opens an `EventSource` on `/preview/<id>/__events`.
    After each render the server pushes a `reload` event and the browser
    refreshes. The chosen stylesheet is injected before `</head>`.
@@ -242,8 +242,7 @@ preview always shows the underlying text.
    as private while a preview is running. Unnamed buffers use Neovim's
    current working directory instead.
 
-`stdpath("cache")` is cleaned up per preview when the preview is stopped, and
-everything is torn down on `VimLeavePre`.
+Everything is torn down on `VimLeavePre`.
 
 ### Edge-case behavior
 
@@ -258,8 +257,8 @@ everything is torn down on `VimLeavePre`.
 - **Rendering order**: each preview carries a monotonically increasing
   generation token. If two pandoc renders overlap and finish out of order,
   the older result is discarded, so it can never overwrite the newer one.
-  Stopping a preview invalidates the token, so a late callback cannot
-  re-create the cache directory or touch the server.
+  Stopping a preview invalidates the token, so a late callback cannot touch
+  the server.
 - **Asset security**: asset URLs are percent-decoded, backslashes are treated
   as separators, `..` components are rejected, and the final path is
   canonicalized with `fs_realpath` and checked to remain inside the source
@@ -269,10 +268,6 @@ everything is torn down on `VimLeavePre`.
   case-insensitive `</body>` (allowing whitespace); if there is no closing
   body it is appended. Unusual or fragment-only HTML still previews and
   reloads.
-- **Cache hygiene**: cache directories matching our `<bufnr>-<counter>` id
-  pattern that are older than 24 hours are removed once per Neovim session,
-  cleaning up after crashed sessions. Active previews serve HTML from memory,
-  so this can never break a running preview.
 
 ## Troubleshooting
 
@@ -313,8 +308,7 @@ The suite includes regression tests for:
 
 - No scroll synchronization (intentionally out of scope).
 - No built-in Org parser; pandoc does all of the conversion.
-- HTML is served from memory; the on-disk copy in the cache directory is for
-  inspection only.
+- HTML is served from memory; nothing is written to disk.
 
 ## License
 

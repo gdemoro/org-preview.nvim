@@ -50,16 +50,10 @@ test("integration: start, live update, stop", function()
   vim.api.nvim_exec_autocmds("TextChanged", { buffer = bufnr })
   assert(wait_for_body(url, "Second heading"), "live update not served")
 
-  -- The rendered document is generated under stdpath("cache")/org-preview/.
-  local id = op.info().previews[1].id
-  local cache_file = vim.fs.joinpath(vim.fn.stdpath("cache"), "org-preview", id, "index.html")
-  assert(vim.uv.fs_stat(cache_file), "expected a cached index.html at " .. cache_file)
-
   -- Stopping tears everything down.
   op.stop(bufnr)
   assert(op.info().server == nil, "server should stop when the last preview stops")
   assert(#op.info().previews == 0, "no previews should remain")
-  assert(not vim.uv.fs_stat(cache_file), "cache file should be removed on stop")
 
   H.rm_rf(dir)
 end)

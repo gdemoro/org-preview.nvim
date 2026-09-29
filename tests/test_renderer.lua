@@ -13,7 +13,6 @@ test("renderer: renders Org headings to HTML", function()
   renderer.render({
     content = "* Hello world\n\nSome *bold* text.\n",
     source_dir = vim.uv.cwd(),
-    title = "Test",
   }, function(e, h)
     err, html = e, h
     done = true
@@ -34,7 +33,6 @@ test("renderer: preserves relative image paths", function()
   renderer.render({
     content = "[[./images/pic.png]]\n",
     source_dir = vim.uv.cwd(),
-    title = "Test",
   }, function(e, h)
     err, html = e, h
     done = true
@@ -54,7 +52,6 @@ test("renderer: reports a clear error when conversion fails", function()
   renderer.render({
     content = "hello",
     source_dir = vim.uv.cwd(),
-    title = "Test",
     pandoc_args = { "--from=nope-not-a-format" },
   }, function(e)
     err = e
