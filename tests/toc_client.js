@@ -77,6 +77,20 @@ class Element {
     this.nodes.push(c);
     return c;
   }
+  prepend(c) {
+    c.parent = this;
+    this.nodes.unshift(c);
+  }
+  querySelector(sel) {
+    let found = null;
+    const selectors = sel.split(',').map((s) => s.trim());
+    walk(this, (e) => {
+      if (!found && selectors.some((s) => matchesSelector(e, s))) {
+        found = e;
+      }
+    });
+    return found;
+  }
   setAttribute(n, v) {
     this.attributes[n] = String(v);
   }
@@ -439,8 +453,12 @@ const state = {
   headings,
   links: links.map((l) => ({
     text: l.textContent,
+    title: l.getAttribute('title'),
     href: l.href,
     level: l.parent ? l.parent.getAttribute('data-level') : null,
+    badges: l.children
+      .filter((e) => e.classList.contains('todo') || e.classList.contains('done'))
+      .map((e) => ({ text: e.textContent, className: e.className })),
   })),
   scrollTargets,
 };

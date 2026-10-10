@@ -176,6 +176,28 @@ node_test("toc: duplicate labels keep distinct existing IDs", function()
   assert(r.scrollTargets[2] == "beta", "second link scrolled wrong heading")
 end)
 
+node_test("toc: full-heading tooltips and compact status badges preserve labels and navigation", function()
+  local text = string.rep("Long heading ", 12) .. "details"
+  local r = run_toc(fixture(
+    heading("h1", "task", '<span class="todo TODO">TODO</span> ' .. text)
+      .. heading("h2", "finished", '<span class="done DONE">DONE</span> <em>Finished</em>')
+      .. heading("h3", "plain", "Plain heading")
+  ), { wide = true })
+  local labels = { "TODO " .. text, "DONE Finished", "Plain heading" }
+  for i, label in ipairs(labels) do
+    assert(r.links[i].title == label, "tooltip must contain the full plain-text heading")
+    assert(r.links[i].text == label, "display label must remain unchanged")
+    assert(r.headings[i].text == label, "original heading must remain unchanged")
+  end
+  assert(r.links[1].badges[1].className == "todo TODO", "TODO badge classes missing")
+  assert(r.links[1].badges[1].text == "TODO", "TODO badge text missing")
+  assert(r.links[2].badges[1].className == "done DONE", "DONE badge classes missing")
+  assert(r.links[2].badges[1].text == "DONE", "DONE badge text missing")
+  assert(#r.links[3].badges == 0, "plain headings must not gain a status badge")
+  assert(r.links[1].href == "#task" and r.scrollTargets[1] == "task", "TODO navigation changed")
+  assert(r.links[2].href == "#finished" and r.scrollTargets[2] == "finished", "DONE navigation changed")
+end)
+
 node_test("toc: special heading IDs are URI-encoded in hrefs", function()
   local html = fixture(
     heading("h1", "a b/c", "Slashy")
@@ -347,6 +369,16 @@ test("toc: injected CSS carries hierarchy, theme and open-only layout", function
   assert(html:find(".op-toc-list", 1, true), "list style missing")
   assert(html:find(".op-toc-item", 1, true), "item style missing")
   assert(html:find(".op-toc-link", 1, true), "link style missing")
+  local link_rule = html:match("%.op%-toc%-link%s*{(.-)}")
+  assert(link_rule:find("white-space: nowrap", 1, true), "TOC entries must stay on one line")
+  assert(link_rule:find("overflow: hidden", 1, true), "TOC entries must clip long labels")
+  assert(link_rule:find("text-overflow: ellipsis", 1, true), "TOC entries must show ellipsis")
+  assert(html:find('.op-toc-item[data-level="2"] {\n  padding-left: 0.6rem;', 1, true),
+    "hierarchy must use compact indentation")
+  assert(html:find('.op-toc-item[data-level="1"] > .op-toc-link', 1, true),
+    "top-level heading distinction missing")
+  assert(html:find(".op-toc-link > .todo,\n.op-toc-link > .done", 1, true),
+    "compact status badge styling missing")
   assert(html:find('[data-level="2"]', 1, true), "level-2 indentation missing")
   assert(html:find('[data-level="6"]', 1, true), "level-6 indentation missing")
   assert(html:find("var(--op-surface)", 1, true), "themed surface token missing")

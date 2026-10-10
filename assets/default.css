@@ -728,7 +728,8 @@ code span.ex {
   background-color: var(--op-surface);
   border-right: 1px solid var(--op-border);
   font-family: var(--op-font-sans);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 .op-toc-toggle {
@@ -782,16 +783,18 @@ code span.ex {
 
 .op-toc-item {
   margin: 0;
-  padding: 0.08rem 0;
+  padding: 0.04rem 0;
 }
 
 .op-toc-link {
   display: block;
-  padding: 0.15rem 0.35rem;
+  padding: 0.22rem 0.4rem;
   border-radius: 4px;
   color: var(--op-fg-muted);
   text-decoration: none;
-  overflow-wrap: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .op-toc-link:hover {
@@ -805,25 +808,51 @@ code span.ex {
   outline-offset: -2px;
 }
 
-/* Flat list: outline depth becomes indentation only. */
+.op-toc-link > .todo,
+.op-toc-link > .done {
+  padding: 0.05em 0.4em;
+  font-size: 0.75em;
+  vertical-align: 0.05em;
+}
+
+.op-toc-item[data-level="1"] {
+  margin-top: 0.3rem;
+}
+
+.op-toc-item[data-level="1"]:first-child {
+  margin-top: 0;
+}
+
+.op-toc-item[data-level="1"] > .op-toc-link {
+  color: var(--op-heading);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.op-toc-item[data-level="2"] > .op-toc-link {
+  color: var(--op-fg);
+  font-weight: 550;
+}
+
+/* Compact, consistent steps leave room for the heading text. */
 .op-toc-item[data-level="2"] {
-  padding-left: 0.75rem;
+  padding-left: 0.6rem;
 }
 
 .op-toc-item[data-level="3"] {
-  padding-left: 1.5rem;
+  padding-left: 1.2rem;
 }
 
 .op-toc-item[data-level="4"] {
-  padding-left: 2.25rem;
+  padding-left: 1.8rem;
 }
 
 .op-toc-item[data-level="5"] {
-  padding-left: 3rem;
+  padding-left: 2.4rem;
 }
 
 .op-toc-item[data-level="6"] {
-  padding-left: 3.75rem;
+  padding-left: 3rem;
 }
 
 /*
