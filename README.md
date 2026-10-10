@@ -169,6 +169,12 @@ The bundled sheet is layered after pandoc's structural CSS, and pandoc's own
 opinionated theme is disabled (`document-css=false`), so the chosen
 stylesheet is authoritative.
 
+The table-of-contents sidebar styling lives in the same bundled sheet (it is
+inert unless the client injects a TOC) and reuses the same light/dark tokens
+(`--op-surface`, `--op-border`, `--op-link`). Because `css` **replaces** the
+sheet, a custom stylesheet also replaces these `.op-toc*` rules; a custom
+sheet that wants the sidebar styled must define them itself.
+
 ### Document title
 
 No `title` is injected into pandoc. The filename is therefore **never**
@@ -176,6 +182,32 @@ rendered as a large document title. If the Org file declares `#+TITLE:`,
 pandoc renders that as the document title block; otherwise no title block is
 emitted. (The browser tab may show `-` for untitled documents, since pandoc
 requires a non-empty `<title>` element.)
+
+### Table of contents
+
+Every preview gets a client-side table of contents built from the rendered
+headings, with no extra configuration:
+
+- a **sidebar** lists every `<h1>`–`<h6>` that has an `id`, in document order,
+  as a flat list indented by heading depth;
+- a small **“Contents” toggle** button shows/hides the sidebar — while the
+  sidebar is open it sits at its top-left, and while closed it moves to the
+  bottom-right corner so it never covers the document's first heading or title;
+- clicking an entry scrolls to the exact heading (by direct reference), and the
+  links use the headings' existing IDs — **heading IDs are never rewritten**;
+- the sidebar **defaults to open on wide viewports (≥ 721px)** and closed on
+  narrower ones, and it does not persist state across reloads.
+
+There is no separate document-title entry: the pandoc title block
+(`#title-block-header`) is excluded, so the TOC lists only real outline
+headings. A document with **no linkable heading** (no headings at all, only
+ID-less headings, or only a title block) shows **no sidebar and no toggle**.
+The sidebar is rebuilt from scratch on every server-sent reload, so it tracks
+live edits automatically.
+
+When the sidebar is open on a wide screen the reading column is offset only
+while open (`body.op-toc-open`); closing it restores the original centered
+layout exactly.
 
 ## Integration with nvim-orgmode
 
@@ -233,9 +265,11 @@ preview always shows the underlying text.
    Org file's directory as the working directory) and returns HTML.
 4. The rendered HTML is held in memory and served from
    `http://127.0.0.1:<port>/preview/<id>/`.
-5. A tiny injected script opens an `EventSource` on `/preview/<id>/__events`.
-   After each render the server pushes a `reload` event and the browser
-   refreshes. The chosen stylesheet is injected before `</head>`.
+5. Two tiny injected clients are appended before `</body>`: one opens an
+   `EventSource` on `/preview/<id>/__events`, and after each render the server
+   pushes a `reload` event so the browser refreshes; the other builds the
+   client-side table of contents described above from the rendered headings.
+   The chosen stylesheet is injected before `</head>`.
 6. Relative assets resolve against `/preview/<id>/`. The local preview
    server can serve **any file within the Org source directory**, not only
    files referenced in the rendered document; do not treat that directory
@@ -293,7 +327,12 @@ nvim --headless -u tests/minimal_init.lua -l tests/run.lua
 
 The full suite requires Pandoc and `curl` on `$PATH`; `curl` is a test-only
 dependency. Without Pandoc, the renderer tests are bypassed but integration
-tests fail. Without `curl`, tests that use it fail rather than skip.
+tests fail. Without `curl`, tests that use it fail rather than skip. Node is
+**optional**: the table-of-contents client cases run the *actual* injected
+JavaScript in a dependency-free harness (`tests/toc_client.js`) that uses only
+Node built-ins (`vm`, `fs`) — **no npm packages are installed or required**.
+When `node` is not on `$PATH` those cases print a `skip` line and the remaining
+Lua cases still run.
 
 The suite includes regression tests for:
 
@@ -302,7 +341,11 @@ The suite includes regression tests for:
 - encoded path-traversal attempts and symlink escapes;
 - unnamed buffers and buffer renames;
 - reload-script injection into non-default HTML shapes;
-- default/custom CSS injection, dark mode, and the absence of a filename title.
+- default/custom CSS injection, dark mode, and the absence of a filename title;
+- table-of-contents client behavior: H1–H6 levels, duplicate labels with
+distinct IDs, URI-encoded IDs, click targets, nav/control ID collisions,
+wide/narrow defaults, toggle state sync, and deferred initialization;
+- live TOC rebuild after a buffer update, with the reload script unchanged.
 
 ## Limitations (v1)
 

@@ -699,3 +699,143 @@ code span.ex {
     font-size: 1.15rem;
   }
 }
+
+/*
+ * Client-side table of contents.
+ *
+ * The sidebar and its toggle are injected by the preview client only when the
+ * document has linkable headings, so these rules are inert otherwise. Both are
+ * `position: fixed`, which keeps the rendered body layout untouched; any layout
+ * offset is applied exclusively through the `body.op-toc-open` open state and
+ * is removed again when the sidebar closes.
+ */
+:root {
+  --op-toc-width: 280px;
+}
+
+.op-toc {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  width: var(--op-toc-width);
+  max-width: 85vw;
+  height: 100vh;
+  margin: 0;
+  padding: 3.25rem 1rem 1.5rem;
+  overflow-y: auto;
+  background-color: var(--op-surface);
+  border-right: 1px solid var(--op-border);
+  font-family: var(--op-font-sans);
+  font-size: 0.85rem;
+}
+
+.op-toc-toggle {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 30;
+  box-sizing: border-box;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--op-border-strong);
+  border-radius: 999px;
+  background-color: var(--op-surface);
+  color: var(--op-fg);
+  font-family: var(--op-font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+/*
+ * Keep the *open* toggle at the sidebar's top-left (inside its reserved
+ * padding), but move the *closed* toggle to the bottom-right corner at every
+ * viewport size.  A closed toggle at the top-left would sit on top of the
+ * document's first heading/title on narrow and medium screens, so it must not
+ * cover the reading area.  This rule only repositions the fixed control; it
+ * changes no document geometry.
+ */
+.op-toc-toggle[aria-expanded="false"] {
+  top: auto;
+  bottom: 0.75rem;
+  left: auto;
+  right: 0.75rem;
+}
+
+.op-toc-toggle:hover {
+  border-color: var(--op-link);
+  color: var(--op-link);
+}
+
+.op-toc-toggle:focus-visible {
+  outline: 2px solid var(--op-link);
+  outline-offset: 2px;
+}
+
+.op-toc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.op-toc-item {
+  margin: 0;
+  padding: 0.08rem 0;
+}
+
+.op-toc-link {
+  display: block;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  color: var(--op-fg-muted);
+  text-decoration: none;
+  overflow-wrap: break-word;
+}
+
+.op-toc-link:hover {
+  background-color: var(--op-quote-bg);
+  color: var(--op-fg);
+  text-decoration: none;
+}
+
+.op-toc-link:focus-visible {
+  outline: 2px solid var(--op-link);
+  outline-offset: -2px;
+}
+
+/* Flat list: outline depth becomes indentation only. */
+.op-toc-item[data-level="2"] {
+  padding-left: 0.75rem;
+}
+
+.op-toc-item[data-level="3"] {
+  padding-left: 1.5rem;
+}
+
+.op-toc-item[data-level="4"] {
+  padding-left: 2.25rem;
+}
+
+.op-toc-item[data-level="5"] {
+  padding-left: 3rem;
+}
+
+.op-toc-item[data-level="6"] {
+  padding-left: 3.75rem;
+}
+
+/*
+ * On wide screens the sidebar must not cover the reading column while open.
+ * Scope the offset strictly to the open state so closing restores the original
+ * centered body exactly; the reading width shrinks only when the viewport
+ * would otherwise be too narrow to fit both.
+ */
+@media (min-width: 721px) {
+  body.op-toc-open {
+    margin-left: var(--op-toc-width);
+    margin-right: 1.5rem;
+    max-width: min(var(--op-max-width), calc(100% - var(--op-toc-width) - 1.5rem));
+  }
+}

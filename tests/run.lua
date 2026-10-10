@@ -25,6 +25,7 @@ local files = {
   "tests/test_integration.lua",
   "tests/test_hardening.lua",
   "tests/test_styles.lua",
+  "tests/test_toc.lua",
   "tests/test_priorities.lua",
   "tests/test_workflow.lua",
   "tests/test_drawers.lua",

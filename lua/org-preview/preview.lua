@@ -69,7 +69,100 @@ local function transform_priorities(html)
   end))
 end
 
---- Inject the custom stylesheet and the SSE reload client into pandoc's HTML.
+--- Client script that builds an accessible, collapsible table of contents
+--- from the rendered heading elements.
+---
+--- The outline is derived purely from existing `<h1>..<h6>` elements that
+--- carry a usable `id`. It never generates heading anchors and never mutates
+--- the rendered document: labels come from `textContent` and fragment links
+--- resolve through a direct element reference (never a text lookup), so
+--- duplicate heading text, special-character ids, skipped levels and empty
+--- ids are all handled. Documents without linkable headings (or with only the
+--- Pandoc title block) produce no sidebar and no toggle button.
+---
+--- @return string
+local function toc_script()
+  return table.concat({
+    "<script>",
+    "(function () {",
+    "  var BREAKPOINT = '(min-width: 721px)';",
+    "  function init() {",
+    "    var body = document.body;",
+    "    if (!body) { return; }",
+    "    var headings = document.querySelectorAll('h1,h2,h3,h4,h5,h6');",
+    "    var entries = [];",
+    "    for (var i = 0; i < headings.length; i++) {",
+    "      var h = headings[i];",
+    "      if (h.closest && h.closest('header#title-block-header')) { continue; }",
+    "      var id = h.getAttribute('id');",
+    "      if (!id) { continue; }",
+    "      entries.push({ el: h, id: id, level: parseInt(h.tagName.charAt(1), 10) || 1 });",
+    "    }",
+    "    if (entries.length === 0) { return; }",
+    "    var navId = 'op-toc';",
+    "    var n = 1;",
+    "    while (document.getElementById(navId)) { navId = 'op-toc-' + (n++); }",
+    "    var toggle = document.createElement('button');",
+    "    toggle.type = 'button';",
+    "    toggle.className = 'op-toc-toggle';",
+    "    toggle.setAttribute('aria-controls', navId);",
+    "    toggle.textContent = 'Contents';",
+    "    var nav = document.createElement('nav');",
+    "    nav.id = navId;",
+    "    nav.className = 'op-toc';",
+    "    nav.setAttribute('aria-label', 'Table of contents');",
+    "    nav.setAttribute('hidden', '');",
+    "    var list = document.createElement('ul');",
+    "    list.className = 'op-toc-list';",
+    "    for (var j = 0; j < entries.length; j++) {",
+    "      var entry = entries[j];",
+    "      var li = document.createElement('li');",
+    "      li.className = 'op-toc-item';",
+    "      li.setAttribute('data-level', String(entry.level));",
+    "      var link = document.createElement('a');",
+    "      link.className = 'op-toc-link';",
+    "      link.href = '#' + encodeURIComponent(entry.id);",
+    "      link.textContent = (entry.el.textContent || '').trim();",
+    "      (function (target) {",
+    "        link.addEventListener('click', function (ev) {",
+    "          if (ev) { ev.preventDefault(); }",
+    "          if (target && target.scrollIntoView) { target.scrollIntoView(); }",
+    "        });",
+    "      })(entry.el);",
+    "      li.appendChild(link);",
+    "      list.appendChild(li);",
+    "    }",
+    "    nav.appendChild(list);",
+    "    body.appendChild(nav);",
+    "    body.appendChild(toggle);",
+    "    var open = false;",
+    "    function apply(state) {",
+    "      open = state;",
+    "      toggle.setAttribute('aria-expanded', state ? 'true' : 'false');",
+    "      if (state) {",
+    "        nav.removeAttribute('hidden');",
+    "        body.classList.add('op-toc-open');",
+    "      } else {",
+    "        nav.setAttribute('hidden', '');",
+    "        body.classList.remove('op-toc-open');",
+    "      }",
+    "    }",
+    "    toggle.addEventListener('click', function () { apply(!open); });",
+    "    var mql = window.matchMedia ? window.matchMedia(BREAKPOINT) : null;",
+    "    apply(mql ? mql.matches : true);",
+    "  }",
+    "  if (document.readyState === 'loading') {",
+    "    document.addEventListener('DOMContentLoaded', init);",
+    "  } else {",
+    "    init();",
+    "  }",
+    "})();",
+    "</script>\n",
+  }, "\n")
+end
+
+--- Inject the custom stylesheet, the TOC client and the SSE reload client
+--- into pandoc's HTML.
 ---
 --- This is deliberately tolerant of non-default templates: closing tags are
 --- matched case-insensitively and with optional whitespace, and if no
@@ -97,7 +190,7 @@ local function inject_html(html, css, events_path)
     "  source.addEventListener('reload', function () { window.location.reload(); });",
     "})();",
     "</script>\n",
-  }, "\n")
+  }, "\n") .. toc_script()
 
   local head_close = "</[hH][eE][aA][dD]%s*>"
   local head_open = "<[hH][eE][aA][dD][^>]*>"
